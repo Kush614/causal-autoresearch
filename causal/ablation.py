@@ -6,8 +6,8 @@ Test A: Ablation test.
 Reverses the agent's git diff on train.py.
 Runs training.
 Measures val_bpb without the change.
-If val_bpb goes UP without the change → change was causal.
-If val_bpb stays DOWN without the change → change was spurious.
+If val_bpb goes UP without the change -> change was causal.
+If val_bpb stays DOWN without the change -> change was spurious.
 
 Returns: float score 0.0–1.0
 """
@@ -62,7 +62,7 @@ def run_ablation(diff, current_val_bpb):
     Returns score 0.0–1.0
     """
     # Save current train.py
-    with open('train.py', 'r') as f:
+    with open('train.py', 'r', encoding='utf-8') as f:
         original_content = f.read()
 
     ablated_bpb = None
@@ -79,7 +79,7 @@ def run_ablation(diff, current_val_bpb):
 
     finally:
         # Always restore original train.py
-        with open('train.py', 'w') as f:
+        with open('train.py', 'w', encoding='utf-8') as f:
             f.write(original_content)
 
     if ablated_bpb is None:

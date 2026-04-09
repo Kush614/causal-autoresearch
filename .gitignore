@@ -22,7 +22,10 @@ dev/
 # Results file
 results.tsv
 
-# Causal verification results (never commit)
-causal/causal_results.tsv
+# Runtime artifacts
 causal/transfer_baseline.txt
 run.log
+
+# Temp files
+~$*
+make_ppt.py

@@ -102,7 +102,7 @@ def intercept_commit(commit_hash):
     causal_score = compute_causal_score(ablation, replication, transfer)
     classification = classify(causal_score)
 
-    print(f'[CAUSAL] Causal confidence: {causal_score:.3f} → {classification}')
+    print(f'[CAUSAL] Causal confidence: {causal_score:.3f} -> {classification}')
 
     # Log
     log_result(commit_hash, val_bpb, ablation, replication,

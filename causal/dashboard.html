@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Causal Autoresearch - 3D Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f5f5f7; color:#1d1d1f; font-family:'Inter',sans-serif; overflow:hidden; cursor:grab; }
+  body:active { cursor:grabbing; }
+  #c { display:block; position:fixed; top:0; left:0; z-index:0; width:100vw; height:100vh; }
+
+  .top-bar {
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 28px;
+    background:linear-gradient(180deg, rgba(245,245,247,0.95) 0%, rgba(245,245,247,0) 100%);
+  }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .brand-icon {
+    width:36px; height:36px; border-radius:10px;
+    background:linear-gradient(135deg,#059669,#0284c7);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:16px; color:#fff;
+    box-shadow:0 2px 12px rgba(5,150,105,0.3);
+  }
+  .brand-text { font-size:16px; font-weight:700; letter-spacing:-0.02em; color:#1d1d1f; }
+  .brand-sub { font-size:11px; color:#86868b; margin-left:12px; }
+  .top-right { display:flex; align-items:center; gap:20px; }
+  .live-badge {
+    display:flex; align-items:center; gap:6px;
+    font-size:11px; color:#059669; font-weight:500;
+    background:rgba(5,150,105,0.08); padding:5px 12px; border-radius:100px;
+    border:1px solid rgba(5,150,105,0.2);
+  }
+  .live-badge::before {
+    content:''; width:6px; height:6px; border-radius:50%; background:#059669;
+    box-shadow:0 0 8px #059669; animation:blink 2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .hw-tag { font-size:11px; color:#86868b; font-family:'JetBrains Mono',monospace; }
+
+  .stats-panel { position:fixed; top:80px; left:28px; z-index:10; width:260px; }
+  .stat-card {
+    background:rgba(255,255,255,0.82); backdrop-filter:blur(24px);
+    border:1px solid rgba(0,0,0,0.06); border-radius:16px;
+    padding:20px; margin-bottom:10px; transition:border-color 0.3s;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  }
+  .stat-card:hover { border-color:rgba(0,0,0,0.12); }
+  .stat-label { font-size:10px; font-weight:600; color:#86868b; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px; }
+  .stat-value { font-size:32px; font-weight:700; letter-spacing:-0.03em; }
+  .stat-value.green { color:#059669; }
+  .stat-value.red { color:#dc2626; }
+  .stat-value.blue { color:#0284c7; }
+  .stat-value.yellow { color:#d97706; }
+  .stat-sub { font-size:11px; color:#aeaeb2; margin-top:4px; }
+
+  .causal-panel { position:fixed; top:80px; right:28px; z-index:10; width:320px; }
+  .causal-title { font-size:11px; font-weight:600; color:#86868b; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; padding-left:4px; }
+  .causal-card {
+    background:rgba(255,255,255,0.82); backdrop-filter:blur(24px);
+    border:1px solid rgba(0,0,0,0.06); border-radius:16px;
+    padding:18px; margin-bottom:8px; transition:all 0.3s; cursor:pointer;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  }
+  .causal-card:hover { border-color:rgba(0,0,0,0.15); transform:translateX(-4px); }
+  .causal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .causal-commit { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; color:#1d1d1f; }
+  .causal-class-badge { font-size:10px; font-weight:600; padding:3px 10px; border-radius:100px; text-transform:uppercase; letter-spacing:0.04em; }
+  .cls-likely_causal { background:rgba(2,132,199,0.1); color:#0284c7; }
+  .cls-strongly_causal { background:rgba(5,150,105,0.1); color:#059669; }
+  .cls-uncertain { background:rgba(217,119,6,0.1); color:#d97706; }
+  .cls-spurious { background:rgba(220,38,38,0.1); color:#dc2626; }
+  .score-big { font-size:28px; font-weight:700; margin-bottom:12px; letter-spacing:-0.02em; }
+  .score-bars { display:flex; flex-direction:column; gap:6px; }
+  .score-row { display:flex; align-items:center; gap:8px; }
+  .score-row-label { font-size:10px; color:#86868b; width:70px; text-transform:uppercase; font-weight:500; letter-spacing:0.04em; }
+  .score-row-bar { flex:1; height:4px; background:rgba(0,0,0,0.06); border-radius:2px; overflow:hidden; }
+  .score-row-fill { height:100%; border-radius:2px; transition:width 1s ease; }
+  .score-row-val { font-family:'JetBrains Mono',monospace; font-size:11px; color:#86868b; width:40px; text-align:right; }
+
+  .bottom-bar {
+    position:fixed; bottom:0; left:0; right:0; z-index:20;
+    background:linear-gradient(0deg, rgba(245,245,247,0.95) 0%, rgba(245,245,247,0) 100%);
+    padding:60px 28px 20px;
+  }
+  .exp-ticker-title { font-size:10px; font-weight:600; color:#aeaeb2; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; }
+  .exp-ticker { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+  .exp-ticker::-webkit-scrollbar { display:none; }
+  .exp-pill {
+    flex-shrink:0; padding:8px 14px; border-radius:10px;
+    background:rgba(255,255,255,0.7); border:1px solid rgba(0,0,0,0.06);
+    font-size:11px; cursor:pointer; transition:all 0.2s;
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+    box-shadow:0 1px 2px rgba(0,0,0,0.03);
+  }
+  .exp-pill:hover { background:rgba(255,255,255,0.9); border-color:rgba(0,0,0,0.12); transform:translateY(-2px); }
+  .exp-pill.keep { border-color:rgba(5,150,105,0.3); }
+  .exp-pill .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .exp-pill .dot.keep { background:#059669; box-shadow:0 0 6px rgba(5,150,105,0.5); }
+  .exp-pill .dot.discard { background:#c7c7cc; }
+  .exp-pill .mono { font-family:'JetBrains Mono',monospace; color:#86868b; }
+  .exp-pill .val { color:#636366; }
+  .exp-pill .desc { color:#aeaeb2; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+
+  .tooltip {
+    position:fixed; z-index:100; padding:16px 20px;
+    background:rgba(255,255,255,0.92); backdrop-filter:blur(20px);
+    border:1px solid rgba(0,0,0,0.08); border-radius:14px;
+    pointer-events:none; opacity:0; transition:opacity 0.2s;
+    max-width:280px; box-shadow:0 8px 32px rgba(0,0,0,0.1);
+  }
+  .tooltip.show { opacity:1; }
+  .tt-commit { font-family:'JetBrains Mono',monospace; font-size:12px; color:#059669; margin-bottom:4px; }
+  .tt-bpb { font-size:22px; font-weight:700; letter-spacing:-0.02em; color:#1d1d1f; }
+  .tt-desc { font-size:12px; color:#86868b; margin-top:6px; }
+  .tt-delta { font-size:12px; margin-top:4px; }
+  .tt-delta.worse { color:#dc2626; }
+  .tt-delta.better { color:#059669; }
+
+  .formula-box {
+    margin-top:16px; padding:16px; background:rgba(255,255,255,0.6);
+    border:1px solid rgba(0,0,0,0.04); border-radius:12px;
+  }
+  .formula-title { font-size:10px; color:#aeaeb2; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; font-weight:600; }
+  .formula-code { font-family:'JetBrains Mono',monospace; font-size:11px; color:#636366; line-height:1.8; }
+
+  .instructions {
+    position:fixed; bottom:90px; left:50%; transform:translateX(-50%); z-index:15;
+    font-size:11px; color:#c7c7cc; text-align:center;
+    animation:fadeOut 8s forwards;
+  }
+  @keyframes fadeOut { 0%,70%{opacity:1} 100%{opacity:0;pointer-events:none} }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="top-bar">
+  <div class="brand">
+    <div class="brand-icon">C</div>
+    <span class="brand-text">Causal Autoresearch</span>
+    <span class="brand-sub">3D Verification Dashboard</span>
+  </div>
+  <div class="top-right">
+    <div class="live-badge">LIVE</div>
+    <span class="hw-tag">GTX 1650 4GB VRAM</span>
+    <span class="hw-tag" id="clock">--:--:--</span>
+  </div>
+</div>
+
+<div class="stats-panel">
+  <div class="stat-card">
+    <div class="stat-label">Best val_bpb</div>
+    <div class="stat-value green">1.4239</div>
+    <div class="stat-sub">Baseline held across 14 challengers</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Experiments</div>
+    <div class="stat-value">15</div>
+    <div class="stat-sub">1 kept / 14 discarded</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Causally Verified</div>
+    <div class="stat-value blue">2</div>
+    <div class="stat-sub">Commits with confidence scores</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Spurious Rate</div>
+    <div class="stat-value yellow">0%</div>
+    <div class="stat-sub">Ratchet was robust on this hardware</div>
+  </div>
+</div>
+
+<div class="causal-panel">
+  <div class="causal-title">Causal Verification Results</div>
+  <div id="causal-cards"></div>
+  <div class="formula-box">
+    <div class="formula-title">Formula</div>
+    <div class="formula-code">
+      <span style="color:#059669">score</span> = <span style="color:#0284c7">0.50</span>*A + <span style="color:#0284c7">0.30</span>*B + <span style="color:#0284c7">0.20</span>*C<br>
+      A = ablation &nbsp; B = replication &nbsp; C = transfer
+    </div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <div class="exp-ticker-title">All Experiments</div>
+  <div class="exp-ticker" id="exp-ticker"></div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tt-commit" id="tt-commit"></div>
+  <div class="tt-bpb" id="tt-bpb"></div>
+  <div class="tt-delta" id="tt-delta"></div>
+  <div class="tt-desc" id="tt-desc"></div>
+</div>
+
+<div class="instructions">Drag to rotate &middot; Scroll to zoom &middot; Hover nodes for details</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── DATA ──
+const EXPERIMENTS = [
+  { commit:'1f5c958', bpb:1.423926, mem:0.3, status:'keep', desc:'baseline (GTX 1650 tuned)' },
+  { commit:'08a8d9b', bpb:1.474077, mem:0.9, status:'discard', desc:'depth=6 batch=8' },
+  { commit:'0286f61', bpb:1.454762, mem:0.9, status:'discard', desc:'total_batch=32K' },
+  { commit:'b02afb1', bpb:1.541201, mem:0.3, status:'discard', desc:'total_batch=2K' },
+  { commit:'bfc657a', bpb:1.437222, mem:0.3, status:'discard', desc:'2x LR' },
+  { commit:'ec60aec', bpb:1.429658, mem:0.3, status:'discard', desc:'1.5x LR' },
+  { commit:'ab5451d', bpb:1.440523, mem:0.3, status:'discard', desc:'5% warmup' },
+  { commit:'ca9f638', bpb:1.435471, mem:0.3, status:'discard', desc:'warmdown=0.3' },
+  { commit:'7930ca4', bpb:1.437929, mem:0.3, status:'discard', desc:'GELU activation' },
+  { commit:'d650c58', bpb:1.432815, mem:0.3, status:'discard', desc:'SwiGLU MLP' },
+  { commit:'1b1f479', bpb:1.523925, mem:0.5, status:'discard', desc:'depth=5' },
+  { commit:'b130aa3', bpb:1.439469, mem:0.3, status:'discard', desc:'HEAD_DIM=64' },
+  { commit:'7f8f687', bpb:1.428779, mem:0.5, status:'discard', desc:'batch=16K' },
+  { commit:'71fb665', bpb:1.427459, mem:0.3, status:'discard', desc:'no weight decay' },
+  { commit:'f19416d', bpb:1.434259, mem:0.3, status:'discard', desc:'no logit softcap' },
+];
+
+const CAUSAL = [
+  { commit:'91c5406', bpb:1.423926, ablation:0.500, replication:0.874, transfer:0.000, score:0.512, cls:'likely_causal', time:'11:26' },
+  { commit:'ec60aec', bpb:1.434259, ablation:0.500, replication:0.987, transfer:0.000, score:0.546, cls:'likely_causal', time:'13:26' },
+];
+
+const BASELINE = EXPERIMENTS[0].bpb;
+
+// ── HUD ──
+document.getElementById('causal-cards').innerHTML = CAUSAL.map(c => {
+  const col = c.cls==='strongly_causal'?'#059669':c.cls==='likely_causal'?'#0284c7':c.cls==='uncertain'?'#d97706':'#dc2626';
+  return `<div class="causal-card">
+    <div class="causal-header">
+      <span class="causal-commit">${c.commit}</span>
+      <span class="causal-class-badge cls-${c.cls}">${c.cls.replace('_',' ')}</span>
+    </div>
+    <div class="score-big" style="color:${col}">${c.score.toFixed(3)}</div>
+    <div class="score-bars">
+      <div class="score-row"><span class="score-row-label">Ablation</span><div class="score-row-bar"><div class="score-row-fill" style="width:${c.ablation*100}%;background:#7c3aed"></div></div><span class="score-row-val">${c.ablation.toFixed(3)}</span></div>
+      <div class="score-row"><span class="score-row-label">Replicate</span><div class="score-row-bar"><div class="score-row-fill" style="width:${c.replication*100}%;background:#0284c7"></div></div><span class="score-row-val">${c.replication.toFixed(3)}</span></div>
+      <div class="score-row"><span class="score-row-label">Transfer</span><div class="score-row-bar"><div class="score-row-fill" style="width:${c.transfer*100}%;background:#d97706"></div></div><span class="score-row-val">${c.transfer.toFixed(3)}</span></div>
+    </div>
+  </div>`;
+}).join('');
+
+document.getElementById('exp-ticker').innerHTML = EXPERIMENTS.map((e,i) => `
+  <div class="exp-pill ${e.status}">
+    <div class="dot ${e.status}"></div>
+    <span class="mono">${e.commit.slice(0,7)}</span>
+    <span class="val">${e.bpb.toFixed(4)}</span>
+    <span class="desc">${e.desc}</span>
+  </div>`).join('');
+
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString()},1000);
+
+// ── THREE.JS ──
+const BG = 0xf0f0f2;
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(BG);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.4;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(BG);
+scene.fog = new THREE.FogExp2(BG, 0.012);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
+camera.position.set(14, 10, 20);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.3;
+controls.minDistance = 5;
+controls.maxDistance = 60;
+controls.target.set(7, 4, 0);
+
+// No bloom in light mode — it washes out the scene
+
+// ── Soft floating dots (replaces dark starfield) ──
+const starGeo = new THREE.BufferGeometry();
+const sCount = 2000;
+const sPos = new Float32Array(sCount*3);
+for(let i=0;i<sCount;i++){sPos[i*3]=(Math.random()-0.5)*200;sPos[i*3+1]=(Math.random()-0.5)*200;sPos[i*3+2]=(Math.random()-0.5)*200;}
+starGeo.setAttribute('position',new THREE.BufferAttribute(sPos,3));
+scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xc7c7cc,size:0.2,transparent:true,opacity:0.3})));
+
+// ── Grid ──
+const grid = new THREE.GridHelper(50,50,0xaeaeb2,0xd1d1d6);
+grid.position.y = -1;
+scene.add(grid);
+
+// ── Axes ──
+function axisLine(a,b,col){
+  const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]);
+  scene.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:col})));
+}
+axisLine([0,-1,0],[16,-1,0],0x047857);
+axisLine([0,-1,0],[0,14,0],0x0369a1);
+axisLine([0,-1,0],[0,-1,6],0xb45309);
+
+// Axis arrow tips (small cones)
+function axisArrow(pos,dir,col){
+  const cone=new THREE.ConeGeometry(0.12,0.4,8);
+  const m=new THREE.Mesh(cone,new THREE.MeshBasicMaterial({color:col}));
+  m.position.set(...pos);
+  if(dir==='x')m.rotation.z=-Math.PI/2;
+  if(dir==='z')m.rotation.x=Math.PI/2;
+  scene.add(m);
+}
+axisArrow([16,-1,0],'x',0x047857);
+axisArrow([0,14,0],'y',0x0369a1);
+axisArrow([0,-1,6],'z',0xb45309);
+
+// ── bpb scale constants (used by labels + nodes) ──
+const bMin=1.40,bMax=1.56;
+const bpbY=v=>((v-bMin)/(bMax-bMin))*12;
+
+// ── Axis Labels ──
+function makeLabel(text,pos,color,size){
+  const c=document.createElement('canvas');
+  c.width=1024;c.height=128;
+  const ctx=c.getContext('2d');
+  ctx.font='900 72px Inter,sans-serif';
+  ctx.fillStyle=color;
+  ctx.fillText(text,8,90);
+  const tex=new THREE.CanvasTexture(c);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:1.0}));
+  sp.scale.set(size||4,0.8,1);
+  sp.position.set(...pos);
+  scene.add(sp);
+}
+makeLabel('Experiment #',[8,-2.2,0],'#1a1a1a',5);
+makeLabel('val_bpb',[-2.2,7,0],'#1a1a1a',3.5);
+makeLabel('VRAM',[-0.5,-2.2,3.5],'#1a1a1a',3.5);
+
+// ── Y-axis tick labels ──
+[1.42,1.44,1.46,1.48,1.50,1.52,1.54].forEach(v=>{
+  const y=((v-bMin)/(bMax-bMin))*12;
+  const c=document.createElement('canvas');
+  c.width=256;c.height=64;
+  const ctx=c.getContext('2d');
+  ctx.font='bold 28px JetBrains Mono,monospace';
+  ctx.fillStyle='#1a1a1a';
+  ctx.fillText(v.toFixed(2),8,40);
+  const tex=new THREE.CanvasTexture(c);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:1.0}));
+  sp.scale.set(2.2,0.55,1);
+  sp.position.set(-1.2,y,0);
+  scene.add(sp);
+  // tick mark
+  const tg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.3,y,0),new THREE.Vector3(0,y,0)]);
+  scene.add(new THREE.Line(tg,new THREE.LineBasicMaterial({color:0x8e8e93,transparent:true,opacity:0.5})));
+});
+
+// ── Nodes ──
+const nodeMeshes=[];
+const nodeGroup=new THREE.Group();
+scene.add(nodeGroup);
+
+EXPERIMENTS.forEach((exp,i)=>{
+  const x=i*1.05, y=bpbY(exp.bpb), z=exp.mem*3;
+  const isK=exp.status==='keep';
+  const col=isK?0x059669:0x8e8e93;
+  const r=isK?0.38:0.2;
+
+  const geo=new THREE.SphereGeometry(r,32,32);
+  const mat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:isK?0.5:0.08,metalness:0.3,roughness:0.5});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.set(x,y,z);
+  mesh.userData={idx:i,exp};
+  nodeGroup.add(mesh);
+  nodeMeshes.push(mesh);
+
+  // Vertical stem
+  const lGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,-1,z),new THREE.Vector3(x,y,z)]);
+  nodeGroup.add(new THREE.Line(lGeo,new THREE.LineBasicMaterial({color:isK?0x047857:0x636366,transparent:true,opacity:isK?0.7:0.35})));
+
+  // Floor ring
+  const ringGeo=new THREE.RingGeometry(0.08,0.14,24);
+  const ringMat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.5,side:THREE.DoubleSide});
+  const ring=new THREE.Mesh(ringGeo,ringMat);
+  ring.rotation.x=-Math.PI/2;
+  ring.position.set(x,-0.99,z);
+  nodeGroup.add(ring);
+
+  // Label
+  if(isK||i===3||i===10){
+    const c2=document.createElement('canvas');
+    c2.width=256;c2.height=64;
+    const ctx=c2.getContext('2d');
+    ctx.font='bold 24px JetBrains Mono,monospace';
+    ctx.fillStyle=isK?'#059669':'#8e8e93';
+    ctx.fillText(exp.bpb.toFixed(4),8,38);
+    const tex=new THREE.CanvasTexture(c2);
+    const spMat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:0.8});
+    const sp=new THREE.Sprite(spMat);
+    sp.scale.set(2,0.5,1);
+    sp.position.set(x,y+0.7,z);
+    nodeGroup.add(sp);
+  }
+});
+
+// Connection lines
+for(let i=0;i<EXPERIMENTS.length-1;i++){
+  const a=nodeMeshes[i].position,b=nodeMeshes[i+1].position;
+  const pts=[];
+  for(let t=0;t<=20;t++){
+    const f=t/20;
+    pts.push(new THREE.Vector3(
+      a.x+(b.x-a.x)*f,
+      a.y+(b.y-a.y)*f+Math.sin(f*Math.PI)*0.15,
+      a.z+(b.z-a.z)*f
+    ));
+  }
+  const curve=new THREE.BufferGeometry().setFromPoints(pts);
+  nodeGroup.add(new THREE.Line(curve,new THREE.LineBasicMaterial({color:0x636366,transparent:true,opacity:0.6})));
+}
+
+// Baseline plane
+const plGeo=new THREE.PlaneGeometry(16,6);
+const plMat=new THREE.MeshBasicMaterial({color:0x059669,transparent:true,opacity:0.04,side:THREE.DoubleSide});
+const basePlane=new THREE.Mesh(plGeo,plMat);
+basePlane.position.set(7.5,bpbY(BASELINE),1.5);
+basePlane.rotation.x=Math.PI/2;
+nodeGroup.add(basePlane);
+
+// Baseline label
+const blCanvas=document.createElement('canvas');
+blCanvas.width=512;blCanvas.height=64;
+const blCtx=blCanvas.getContext('2d');
+blCtx.font='bold 28px Inter,sans-serif';
+blCtx.fillStyle='rgba(5,150,105,0.6)';
+blCtx.fillText('BASELINE  1.4239',8,42);
+const blTex=new THREE.CanvasTexture(blCanvas);
+const blSp=new THREE.Sprite(new THREE.SpriteMaterial({map:blTex,transparent:true}));
+blSp.scale.set(6,0.7,1);
+blSp.position.set(-1.5,bpbY(BASELINE)+0.4,0);
+nodeGroup.add(blSp);
+
+// ── Causal rings ──
+const causalObjs=[];
+CAUSAL.forEach((c,ci)=>{
+  const idx=EXPERIMENTS.findIndex(e=>e.commit===c.commit);
+  const pos=idx>=0?nodeMeshes[idx].position.clone():new THREE.Vector3(ci*2+7,bpbY(c.bpb),0);
+
+  const ringCol=c.cls==='strongly_causal'?0x059669:c.cls==='likely_causal'?0x0284c7:c.cls==='uncertain'?0xd97706:0xdc2626;
+
+  const t1=new THREE.Mesh(new THREE.TorusGeometry(0.7,0.018,16,64),new THREE.MeshBasicMaterial({color:ringCol,transparent:true,opacity:0.6}));
+  t1.position.copy(pos);
+  nodeGroup.add(t1);
+  causalObjs.push({mesh:t1,speed:0.4+ci*0.3,axis:'y'});
+
+  const t2=new THREE.Mesh(new THREE.TorusGeometry(0.7,0.018,16,64),new THREE.MeshBasicMaterial({color:ringCol,transparent:true,opacity:0.4}));
+  t2.position.copy(pos);
+  t2.rotation.x=Math.PI/2;
+  nodeGroup.add(t2);
+  causalObjs.push({mesh:t2,speed:0.6+ci*0.2,axis:'x'});
+
+  const t3=new THREE.Mesh(new THREE.TorusGeometry(0.7,0.018,16,64),new THREE.MeshBasicMaterial({color:ringCol,transparent:true,opacity:0.25}));
+  t3.position.copy(pos);
+  t3.rotation.z=Math.PI/3;
+  nodeGroup.add(t3);
+  causalObjs.push({mesh:t3,speed:0.5+ci*0.25,axis:'z'});
+
+  // Inner glow
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(0.18,16,16),new THREE.MeshStandardMaterial({color:ringCol,emissive:ringCol,emissiveIntensity:1.0,transparent:true,opacity:0.8}));
+  glow.position.copy(pos);
+  nodeGroup.add(glow);
+});
+
+// ── Floating particles ──
+const pCount=400;
+const pGeo2=new THREE.BufferGeometry();
+const pP=new Float32Array(pCount*3);
+const pV=[];
+for(let i=0;i<pCount;i++){
+  pP[i*3]=Math.random()*16;pP[i*3+1]=Math.random()*14-1;pP[i*3+2]=Math.random()*5-1;
+  pV.push({x:(Math.random()-0.5)*0.004,y:(Math.random()-0.5)*0.003,z:(Math.random()-0.5)*0.002});
+}
+pGeo2.setAttribute('position',new THREE.BufferAttribute(pP,3));
+const parts=new THREE.Points(pGeo2,new THREE.PointsMaterial({color:0x059669,size:0.04,transparent:true,opacity:0.2}));
+scene.add(parts);
+
+// ── Lights (brighter for light mode) ──
+scene.add(new THREE.AmbientLight(0xffffff,0.8));
+const dL=new THREE.DirectionalLight(0xffffff,0.6);dL.position.set(10,20,10);scene.add(dL);
+const pL1=new THREE.PointLight(0x059669,1.5,35);pL1.position.set(7,16,5);scene.add(pL1);
+const pL2=new THREE.PointLight(0x0284c7,1.0,30);pL2.position.set(-2,6,-5);scene.add(pL2);
+const pL3=new THREE.PointLight(0xd97706,0.6,20);pL3.position.set(14,4,3);scene.add(pL3);
+
+// ── Raycaster ──
+const ray=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+const tt=document.getElementById('tooltip');
+let hovered=null;
+
+window.addEventListener('mousemove',e=>{
+  mouse.x=(e.clientX/window.innerWidth)*2-1;
+  mouse.y=-(e.clientY/window.innerHeight)*2+1;
+  ray.setFromCamera(mouse,camera);
+  const hits=ray.intersectObjects(nodeMeshes);
+  if(hits.length>0){
+    const o=hits[0].object,exp=o.userData.exp;
+    if(hovered!==o){
+      hovered=o;
+      document.getElementById('tt-commit').textContent=exp.commit;
+      document.getElementById('tt-bpb').textContent=exp.bpb.toFixed(6);
+      const d=exp.bpb-BASELINE;
+      const de=document.getElementById('tt-delta');
+      de.textContent=d===0?'BASELINE':(d>0?'+':'')+d.toFixed(6)+' from baseline';
+      de.className='tt-delta '+(d>0?'worse':d<0?'better':'');
+      document.getElementById('tt-desc').textContent=exp.desc;
+    }
+    tt.style.left=e.clientX+16+'px';
+    tt.style.top=e.clientY-16+'px';
+    tt.classList.add('show');
+    o.material.emissiveIntensity=0.8;
+    document.body.style.cursor='pointer';
+  } else {
+    tt.classList.remove('show');
+    if(hovered){hovered.material.emissiveIntensity=hovered.userData.exp.status==='keep'?0.5:0.08;hovered=null;}
+    document.body.style.cursor='grab';
+  }
+});
+
+// ── Animate ──
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+  controls.update();
+
+  nodeMeshes[0].scale.setScalar(1+Math.sin(t*2)*0.08);
+
+  causalObjs.forEach(o=>{
+    o.mesh.rotation.x+=o.speed*0.008;
+    o.mesh.rotation.y+=o.speed*0.006;
+    o.mesh.rotation.z+=o.speed*0.004;
+  });
+
+  const pp=parts.geometry.attributes.position.array;
+  for(let i=0;i<pCount;i++){
+    pp[i*3]+=pV[i].x+Math.sin(t*0.5+i)*0.0008;
+    pp[i*3+1]+=pV[i].y+Math.cos(t*0.3+i)*0.0008;
+    pp[i*3+2]+=pV[i].z;
+    if(pp[i*3]>17||pp[i*3]<-2)pV[i].x*=-1;
+    if(pp[i*3+1]>14||pp[i*3+1]<-2)pV[i].y*=-1;
+    if(pp[i*3+2]>6||pp[i*3+2]<-2)pV[i].z*=-1;
+  }
+  parts.geometry.attributes.position.needsUpdate=true;
+
+  pL1.position.x=7+Math.sin(t*0.25)*3;
+  pL2.position.z=Math.cos(t*0.2)*5;
+
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+</body>
+</html>

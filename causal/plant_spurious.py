@@ -22,7 +22,7 @@ import torch as _t; _t.manual_seed(42)
 
 def plant():
     # Read current train.py
-    with open('train.py', 'r') as f:
+    with open('train.py', 'r', encoding='utf-8') as f:
         content = f.read()
 
     # Check not already planted
@@ -40,7 +40,7 @@ def plant():
     lines.insert(inject_at + 1, SPURIOUS_CODE)
     new_content = '\n'.join(lines)
 
-    with open('train.py', 'w') as f:
+    with open('train.py', 'w', encoding='utf-8') as f:
         f.write(new_content)
 
     # Commit it

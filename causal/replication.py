@@ -24,7 +24,7 @@ UV_PATH = os.path.join(os.path.expanduser("~"), ".local", "bin", "uv")
 def run_training_with_seed(seed):
     """Temporarily inject seed into train.py, run, return val_bpb."""
     # Read current train.py
-    with open('train.py', 'r') as f:
+    with open('train.py', 'r', encoding='utf-8') as f:
         content = f.read()
 
     # Inject seed at top of file (after imports)
@@ -51,7 +51,7 @@ if _torch_module.cuda.is_available():
     modified_content = '\n'.join(lines)
 
     # Write modified train.py
-    with open('train.py', 'w') as f:
+    with open('train.py', 'w', encoding='utf-8') as f:
         f.write(modified_content)
 
     # Run training
@@ -71,7 +71,7 @@ if _torch_module.cuda.is_available():
         print(f'[REPLICATION]   Seed {seed} error: {e}')
     finally:
         # Always restore original
-        with open('train.py', 'w') as f:
+        with open('train.py', 'w', encoding='utf-8') as f:
             f.write(content)
 
     return bpb

@@ -40,7 +40,20 @@ def analyze():
     std_best = min(all_bpb) if all_bpb else None
     causal_best = min(causal_bpb) if causal_bpb else None
 
-    findings = f"""# findings.md — Causal Autoresearch Results
+    std_best_str = f"{std_best:.6f}" if std_best else "N/A"
+    causal_best_str = f"{causal_best:.6f}" if causal_best else "N/A"
+    spurious_pct = f"{spurious_rate:.0f}"
+
+    if spurious_rate > 15:
+        key_finding = f"Finding 1: Spurious rate is non-trivial at {spurious_pct}%. Karpathys greedy ratchet accepts improvements that are seed-dependent or data-shard-specific. The causal-filtered path reaches comparable val_bpb with higher confidence in each accepted commit."
+    else:
+        key_finding = f"Finding 2: The 5-minute fixed training budget acts as a natural noise filter. Spurious rate is low at {spurious_pct}%. However, seed-dependent improvements remain detectable and the causal layer successfully identifies them."
+
+    table_rows = ""
+    for r in rows:
+        table_rows += f"| {r['commit']} | {float(r['val_bpb']):.6f} | {float(r['causal_score']):.3f} | {r['classification']} |\n"
+
+    findings = f"""# findings.md - Causal Autoresearch Results
 ## Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 ## Hardware: GTX 1650 (4GB VRAM)
 
@@ -52,22 +65,22 @@ def analyze():
 - Strongly causal: {len(strong)} ({len(strong)/total*100:.0f}%)
 - Likely causal: {len(likely)} ({len(likely)/total*100:.0f}%)
 - Uncertain: {total - len(spurious) - len(likely) - len(strong)}
-- **Spurious: {len(spurious)} ({spurious_rate:.0f}%)**
+- **Spurious: {len(spurious)} ({spurious_pct}%)**
 
 ## val_bpb Results
 
-- Standard ratchet best val_bpb: {std_best:.6f if std_best else 'N/A'}
-- Causal-filtered best val_bpb:  {causal_best:.6f if causal_best else 'N/A'}
+- Standard ratchet best val_bpb: {std_best_str}
+- Causal-filtered best val_bpb:  {causal_best_str}
 
 ## Key Finding
 
-{"Finding 1: Spurious rate is non-trivial at " + f"{spurious_rate:.0f}%" + ". Karpathys greedy ratchet accepts improvements that are seed-dependent or data-shard-specific. The causal-filtered path reaches comparable val_bpb with higher confidence in each accepted commit." if spurious_rate > 15 else "Finding 2: The 5-minute fixed training budget acts as a natural noise filter. Spurious rate is low at " + f"{spurious_rate:.0f}%" + ". However, seed-dependent improvements remain detectable and the causal layer successfully identifies them."}
+{key_finding}
 
 ## Causal Scores by Commit
 
 | Commit | val_bpb | Causal Score | Classification |
 |--------|---------|--------------|----------------|
-{"".join(f"| {r['commit']} | {float(r['val_bpb']):.6f} | {float(r['causal_score']):.3f} | {r['classification']} |" + chr(10) for r in rows)}
+{table_rows}
 
 ## Methodology
 
@@ -82,7 +95,7 @@ Causal confidence = 0.5*ablation + 0.3*replication + 0.2*transfer
 
 This is the first empirical application of causal verification to
 agent-discovered program optimizations. Regardless of the spurious rate,
-the methodology demonstrates that not all val_bpb improvements are equal —
+the methodology demonstrates that not all val_bpb improvements are equal -
 and that causal confidence scoring is both feasible and informative
 within the autoresearch framework.
 """
