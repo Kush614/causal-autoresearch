@@ -435,7 +435,7 @@ class MuonAdamW(torch.optim.Optimizer):
 
 # Model architecture
 ASPECT_RATIO = 64       # model_dim = depth * ASPECT_RATIO
-HEAD_DIM = 128          # target head dimension for attention
+HEAD_DIM = 64           # target head dimension for attention (experiment: more heads)
 WINDOW_PATTERN = "L"    # full context only (tuned for GTX 1650)
 
 # Optimization
@@ -451,7 +451,7 @@ WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
 FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
 
 # Model size
-DEPTH = 5               # number of transformer layers (experiment: depth 5)
+DEPTH = 4               # number of transformer layers
 DEVICE_BATCH_SIZE = 4    # per-device batch size
 
 # ---------------------------------------------------------------------------
