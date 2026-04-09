@@ -21,3 +21,8 @@ dev/
 
 # Results file
 results.tsv
+
+# Causal verification results (never commit)
+causal/causal_results.tsv
+causal/transfer_baseline.txt
+run.log

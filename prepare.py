@@ -27,9 +27,9 @@ import torch
 # Constants (fixed, do not modify)
 # ---------------------------------------------------------------------------
 
-MAX_SEQ_LEN = 2048       # context length
+MAX_SEQ_LEN = 256        # context length (tuned for GTX 1650 4GB VRAM)
 TIME_BUDGET = 300        # training time budget in seconds (5 minutes)
-EVAL_TOKENS = 40 * 524288  # number of tokens for val eval
+EVAL_TOKENS = 5000       # number of tokens for val eval (tuned for GTX 1650)
 
 # ---------------------------------------------------------------------------
 # Configuration
