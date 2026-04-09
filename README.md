@@ -90,9 +90,28 @@ causal_score = 0.50 * ablation + 0.30 * replication + 0.20 * transfer
 
 ---
 
-## Theoretical Foundation
+## Theoretical Foundation: Pearl's Do-Calculus
 
-We adapt **Judea Pearl's do-calculus** to the domain of automated code optimization:
+**Judea Pearl** (Turing Award winner) invented the mathematical framework for distinguishing **causation** from **correlation**. The core idea:
+
+```
+Seeing something happen  !=  Causing something to happen
+
+"People who carry lighters get lung cancer"  (correlation)
+"Does carrying a lighter CAUSE lung cancer?" (causation)
+  --> No. Smoking is the hidden confounder causing both.
+```
+
+Pearl's notation distinguishes these with the `do()` operator:
+
+```
+P(Y | X)        = "What happens to Y when we OBSERVE X?"   --> Correlation
+P(Y | do(X))    = "What happens to Y when we FORCE X?"     --> Causation
+```
+
+The `do()` means **intervene** - force something to happen rather than passively observing it. Pearl proved 3 mathematical rules (the "calculus") for when you can convert between `do()` expressions and regular probability, giving you a formal system to determine when an experiment can actually prove causation.
+
+### Applied to Autoresearch
 
 ```
 Causal Graph:
@@ -103,16 +122,24 @@ Causal Graph:
                            ^
     Data Order (Z2) ───────┘
 
+Standard Ratchet:   "val_bpb improved when code changed"
+                     = P(Y | X) = Correlation
+                     (Confounders Z1, Z2 are uncontrolled)
 
-Standard Ratchet measures:    P(Y | X)      = Correlation
-Our Causal Layer measures:    P(Y | do(X))  = Causation
+Our Causal Layer:   "val_bpb improved BECAUSE code changed"
+                     = P(Y | do(X)) = Causation
+                     (Each test controls for a different confounder)
 ```
 
-The key insight: **`P(Y | X)` != `P(Y | do(X))`** when confounders exist. The ratchet observes that val_bpb changed when the code changed, but doesn't control for seeds, data ordering, or GPU noise. Our three tests each attack a different confounder:
+The ratchet just **sees** that val_bpb went down after a code change. But random seed, data order, and GPU noise are **confounders** - hidden variables that could cause val_bpb to change independently of the code. Our three tests each use a different causal inference technique to control for them:
 
-- **Ablation** (`do(X=0)`): Directly intervenes by removing the change
-- **Replication**: Marginalizes over the seed confounder by testing multiple seeds
-- **Transfer**: Tests generalizability beyond the specific training conditions
+| Test | Causal Technique | Pearl's Terms | What it controls for |
+|------|-----------------|---------------|---------------------|
+| **Ablation** | Intervention | `do(X=0)` - force the treatment off | Removes the change entirely, observes effect |
+| **Replication** | Marginalization | Integrate over Z1 (seed variable) | Tests if improvement is seed-independent |
+| **Transfer** | Generalizability | Check effect across environments | Tests if improvement holds beyond specific conditions |
+
+We don't use the full mathematical rules of do-calculus directly - we use the **philosophy** behind it: to claim causation, you need to control for confounders through **intervention**, not just observation. Each of our three tests is an intervention that attacks a different confounder.
 
 ---
 
