@@ -439,7 +439,7 @@ HEAD_DIM = 128          # target head dimension for attention
 WINDOW_PATTERN = "L"    # full context only (tuned for GTX 1650)
 
 # Optimization
-TOTAL_BATCH_SIZE = 2**13 # ~8K tokens per optimizer step (tuned for GTX 1650)
+TOTAL_BATCH_SIZE = 2**15 # ~32K tokens per optimizer step (experiment: bigger batch)
 EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
 UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
 MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
@@ -451,8 +451,8 @@ WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
 FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
 
 # Model size
-DEPTH = 6               # number of transformer layers (experiment: larger model)
-DEVICE_BATCH_SIZE = 8    # per-device batch size (experiment: larger batch)
+DEPTH = 4               # number of transformer layers
+DEVICE_BATCH_SIZE = 16   # per-device batch size (experiment: bigger batch)
 
 # ---------------------------------------------------------------------------
 # Setup: tokenizer, model, optimizer, dataloader
