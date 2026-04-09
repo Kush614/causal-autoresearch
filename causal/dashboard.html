@@ -133,6 +133,83 @@
     animation:fadeOut 8s forwards;
   }
   @keyframes fadeOut { 0%,70%{opacity:1} 100%{opacity:0;pointer-events:none} }
+
+  /* Code Viewer */
+  .code-toggle {
+    position:fixed; top:18px; right:320px; z-index:25;
+    background:rgba(255,255,255,0.85); backdrop-filter:blur(16px);
+    border:1px solid rgba(0,0,0,0.08); border-radius:10px;
+    padding:7px 16px; font-size:12px; font-weight:600; color:#1d1d1f;
+    cursor:pointer; transition:all 0.2s; font-family:'Inter',sans-serif;
+    box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  }
+  .code-toggle:hover { background:rgba(255,255,255,0.95); border-color:rgba(0,0,0,0.15); }
+  .code-toggle.active { background:#059669; color:#fff; border-color:#047857; }
+
+  .code-overlay {
+    position:fixed; top:0; left:0; right:0; bottom:0; z-index:30;
+    background:rgba(245,245,247,0.97); backdrop-filter:blur(24px);
+    display:none; overflow-y:auto; padding:60px 40px 40px;
+  }
+  .code-overlay.show { display:block; }
+
+  .code-close {
+    position:fixed; top:16px; right:24px; z-index:35;
+    background:#dc2626; color:#fff; border:none; border-radius:8px;
+    padding:8px 20px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .code-close:hover { background:#b91c1c; }
+
+  .code-nav {
+    display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;
+    position:sticky; top:0; background:rgba(245,245,247,0.95);
+    backdrop-filter:blur(12px); padding:12px 0; z-index:2;
+  }
+  .code-nav-btn {
+    padding:8px 18px; border-radius:8px; font-size:12px; font-weight:600;
+    border:1px solid rgba(0,0,0,0.08); background:rgba(255,255,255,0.7);
+    color:#636366; cursor:pointer; transition:all 0.2s; font-family:'Inter',sans-serif;
+  }
+  .code-nav-btn:hover { background:#fff; border-color:rgba(0,0,0,0.15); }
+  .code-nav-btn.active { background:#059669; color:#fff; border-color:#047857; }
+
+  .code-section { display:none; }
+  .code-section.show { display:block; }
+
+  .code-section h2 {
+    font-size:22px; font-weight:700; color:#1d1d1f; margin-bottom:4px;
+  }
+  .code-section .code-desc {
+    font-size:13px; color:#86868b; margin-bottom:16px; line-height:1.5;
+  }
+  .code-block {
+    background:#1e1e2e; color:#cdd6f4; border-radius:12px;
+    padding:20px 24px; font-family:'JetBrains Mono',monospace;
+    font-size:12.5px; line-height:1.7; overflow-x:auto;
+    margin-bottom:24px; white-space:pre; tab-size:4;
+    box-shadow:0 2px 8px rgba(0,0,0,0.12);
+  }
+  .code-block .kw { color:#cba6f7; }
+  .code-block .fn { color:#89b4fa; }
+  .code-block .st { color:#a6e3a1; }
+  .code-block .cm { color:#585b70; font-style:italic; }
+  .code-block .nu { color:#fab387; }
+  .code-block .op { color:#89dceb; }
+  .code-block .var { color:#f5c2e7; }
+
+  .code-flow {
+    display:flex; align-items:center; gap:12px; margin:20px 0 28px;
+    flex-wrap:wrap;
+  }
+  .code-flow-box {
+    background:rgba(255,255,255,0.8); border:1px solid rgba(0,0,0,0.08);
+    border-radius:10px; padding:12px 20px; text-align:center;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  }
+  .code-flow-box .flow-title { font-size:13px; font-weight:700; color:#1d1d1f; }
+  .code-flow-box .flow-sub { font-size:10px; color:#86868b; margin-top:2px; }
+  .code-flow-arrow { font-size:20px; color:#aeaeb2; }
 </style>
 </head>
 <body>
@@ -200,6 +277,258 @@
 </div>
 
 <div class="instructions">Drag to rotate &middot; Scroll to zoom &middot; Hover nodes for details</div>
+
+<button class="code-toggle" id="codeToggle">View Source Code</button>
+
+<div class="code-overlay" id="codeOverlay">
+<button class="code-close" id="codeClose">Close</button>
+
+<div class="code-nav" id="codeNav">
+  <button class="code-nav-btn active" data-tab="overview">Pipeline Overview</button>
+  <button class="code-nav-btn" data-tab="interceptor">interceptor.py</button>
+  <button class="code-nav-btn" data-tab="ablation">ablation.py</button>
+  <button class="code-nav-btn" data-tab="replication">replication.py</button>
+  <button class="code-nav-btn" data-tab="transfer">transfer.py</button>
+  <button class="code-nav-btn" data-tab="classifier">classifier.py</button>
+</div>
+
+<!-- OVERVIEW TAB -->
+<div class="code-section show" id="tab-overview">
+  <h2>Causal Verification Pipeline</h2>
+  <p class="code-desc">The complete flow from git commit to causal classification. Each commit triggers the interceptor, which runs 3 independent tests and combines scores.</p>
+
+  <div class="code-flow">
+    <div class="code-flow-box"><div class="flow-title">Git Commit</div><div class="flow-sub">Agent edits train.py</div></div>
+    <div class="code-flow-arrow">&#8594;</div>
+    <div class="code-flow-box"><div class="flow-title">Interceptor</div><div class="flow-sub">Reads val_bpb + diff</div></div>
+    <div class="code-flow-arrow">&#8594;</div>
+    <div class="code-flow-box" style="border-color:rgba(124,58,237,0.3)"><div class="flow-title" style="color:#7c3aed">Test A: Ablation</div><div class="flow-sub">Reverse patch, retrain</div></div>
+    <div class="code-flow-arrow">&#8594;</div>
+    <div class="code-flow-box" style="border-color:rgba(2,132,199,0.3)"><div class="flow-title" style="color:#0284c7">Test B: Replication</div><div class="flow-sub">3 seeds, measure var</div></div>
+    <div class="code-flow-arrow">&#8594;</div>
+    <div class="code-flow-box" style="border-color:rgba(217,119,6,0.3)"><div class="flow-title" style="color:#d97706">Test C: Transfer</div><div class="flow-sub">Compare to baseline</div></div>
+    <div class="code-flow-arrow">&#8594;</div>
+    <div class="code-flow-box" style="border-color:rgba(5,150,105,0.3)"><div class="flow-title" style="color:#059669">Classifier</div><div class="flow-sub">Weighted score &rarr; label</div></div>
+  </div>
+
+  <h2>Causal Graph (Pearl's Do-Calculus)</h2>
+  <p class="code-desc">The ratchet measures P(Y|X) = correlation. Our layer measures P(Y|do(X)) = causation by controlling for confounders.</p>
+  <div class="code-block"><span class="cm">    Causal Graph:</span>
+
+    <span class="var">Random Seed</span> (Z1) ──────┐
+                               <span class="op">v</span>
+    <span class="fn">Code Change</span> (X)  ────> <span class="st">val_bpb</span> (Y)
+                               <span class="op">^</span>
+    <span class="var">Data Order</span>  (Z2) ──────┘
+
+    <span class="cm"># Standard ratchet:</span>    P(Y | X)      = <span class="var">Correlation</span>
+    <span class="cm"># Our causal layer:</span>   P(Y | <span class="kw">do</span>(X))  = <span class="st">Causation</span>
+
+    <span class="cm"># Test A controls for:</span>  <span class="kw">do</span>(X=0) intervention
+    <span class="cm"># Test B controls for:</span>  Marginalize over Z1 (seed)
+    <span class="cm"># Test C controls for:</span>  Generalizability across environments</div>
+</div>
+
+<!-- INTERCEPTOR TAB -->
+<div class="code-section" id="tab-interceptor">
+  <h2>causal/interceptor.py</h2>
+  <p class="code-desc">Entry point for causal verification. Called with a commit hash, orchestrates all 3 tests, computes the final score, and logs to causal_results.tsv.</p>
+  <div class="code-block"><span class="kw">from</span> causal.ablation <span class="kw">import</span> run_ablation
+<span class="kw">from</span> causal.replication <span class="kw">import</span> run_replication
+<span class="kw">from</span> causal.transfer <span class="kw">import</span> run_transfer
+<span class="kw">from</span> causal.classifier <span class="kw">import</span> compute_causal_score, classify
+
+<span class="kw">def</span> <span class="fn">intercept_commit</span>(commit_hash):
+    <span class="cm"># Get current val_bpb from run.log</span>
+    val_bpb = <span class="fn">get_val_bpb_from_log</span>()
+
+    <span class="cm"># Get the git diff for this commit</span>
+    diff = <span class="fn">get_commit_diff</span>(commit_hash)
+
+    <span class="cm"># Run three independent causal tests</span>
+    ablation    = <span class="fn">run_ablation</span>(diff, val_bpb)
+    replication = <span class="fn">run_replication</span>(val_bpb)
+    transfer    = <span class="fn">run_transfer</span>(val_bpb)
+
+    <span class="cm"># Compute weighted score + classify</span>
+    causal_score   = <span class="fn">compute_causal_score</span>(ablation, replication, transfer)
+    classification = <span class="fn">classify</span>(causal_score)
+
+    <span class="cm"># Log to causal_results.tsv</span>
+    <span class="fn">log_result</span>(commit_hash, val_bpb, ablation, replication,
+               transfer, causal_score, classification)
+
+    <span class="kw">return</span> causal_score</div>
+
+  <h2>Helper: Reading val_bpb</h2>
+  <div class="code-block"><span class="kw">def</span> <span class="fn">get_val_bpb_from_log</span>():
+    <span class="st">"""Read val_bpb from most recent run.log"""</span>
+    <span class="kw">with</span> <span class="fn">open</span>(<span class="st">'run.log'</span>, <span class="st">'r'</span>) <span class="kw">as</span> f:
+        <span class="kw">for</span> line <span class="kw">in</span> f:
+            <span class="kw">if</span> line.<span class="fn">startswith</span>(<span class="st">'val_bpb:'</span>):
+                <span class="kw">return</span> <span class="fn">float</span>(line.<span class="fn">split</span>(<span class="st">':'</span>)[<span class="nu">1</span>].<span class="fn">strip</span>())</div>
+
+  <h2>Helper: Getting Commit Diff</h2>
+  <div class="code-block"><span class="kw">def</span> <span class="fn">get_commit_diff</span>(commit_hash):
+    <span class="st">"""Get the diff of train.py changes in this commit"""</span>
+    result = subprocess.<span class="fn">run</span>(
+        [<span class="st">'git'</span>, <span class="st">'diff'</span>, <span class="st">f'{commit_hash}^'</span>, commit_hash, <span class="st">'--'</span>, <span class="st">'train.py'</span>],
+        capture_output=<span class="kw">True</span>, text=<span class="kw">True</span>
+    )
+    <span class="kw">return</span> result.stdout</div>
+</div>
+
+<!-- ABLATION TAB -->
+<div class="code-section" id="tab-ablation">
+  <h2>causal/ablation.py &mdash; Test A (Weight: 50%)</h2>
+  <p class="code-desc">Reverses the agent's git diff on train.py, re-runs training, and measures the delta. If val_bpb gets worse without the change, the change was genuinely causal. This is the do(X=0) intervention from Pearl's framework.</p>
+  <div class="code-block"><span class="var">NORMALIZATION_DELTA</span> = <span class="nu">0.005</span>  <span class="cm"># 0.005 val_bpb improvement = score of 1.0</span>
+
+<span class="kw">def</span> <span class="fn">run_ablation</span>(diff, current_val_bpb):
+    <span class="st">"""Reverse the change, re-run, measure delta."""</span>
+
+    <span class="cm"># Save current train.py</span>
+    <span class="kw">with</span> <span class="fn">open</span>(<span class="st">'train.py'</span>, <span class="st">'r'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+        original_content = f.<span class="fn">read</span>()
+
+    <span class="kw">try</span>:
+        <span class="cm"># Apply reverse patch (remove the agent's change)</span>
+        success = <span class="fn">apply_reverse_patch</span>(diff)
+        <span class="kw">if not</span> success:
+            <span class="kw">return</span> <span class="nu">0.5</span>  <span class="cm"># Can't reverse cleanly</span>
+
+        <span class="cm"># Run training WITHOUT the change</span>
+        ablated_bpb = <span class="fn">run_training_get_bpb</span>()
+
+    <span class="kw">finally</span>:
+        <span class="cm"># Always restore original train.py</span>
+        <span class="kw">with</span> <span class="fn">open</span>(<span class="st">'train.py'</span>, <span class="st">'w'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+            f.<span class="fn">write</span>(original_content)
+
+    <span class="cm"># Without the change, val_bpb should be HIGHER (worse)</span>
+    improvement = ablated_bpb - current_val_bpb  <span class="cm"># positive = causal</span>
+
+    <span class="cm"># Normalize to 0-1</span>
+    score = <span class="fn">min</span>(<span class="nu">1.0</span>, <span class="fn">max</span>(<span class="nu">0.0</span>, improvement / <span class="var">NORMALIZATION_DELTA</span>))
+    <span class="kw">return</span> score</div>
+
+  <div class="code-block"><span class="kw">def</span> <span class="fn">apply_reverse_patch</span>(diff):
+    <span class="st">"""Apply reverse of diff to train.py"""</span>
+    result = subprocess.<span class="fn">run</span>(
+        [<span class="st">'git'</span>, <span class="st">'apply'</span>, <span class="st">'--reverse'</span>, <span class="st">'--whitespace=fix'</span>, <span class="st">'-'</span>],
+        input=diff, text=<span class="kw">True</span>, capture_output=<span class="kw">True</span>
+    )
+    <span class="kw">return</span> result.returncode == <span class="nu">0</span></div>
+</div>
+
+<!-- REPLICATION TAB -->
+<div class="code-section" id="tab-replication">
+  <h2>causal/replication.py &mdash; Test B (Weight: 30%)</h2>
+  <p class="code-desc">Runs training 3 times with different random seeds [42, 137, 999]. Low variance across seeds means the improvement is seed-independent and likely causal. High variance means the improvement was a lucky seed.</p>
+  <div class="code-block"><span class="var">SEEDS</span> = [<span class="nu">42</span>, <span class="nu">137</span>, <span class="nu">999</span>]
+<span class="var">VARIANCE_THRESHOLD</span> = <span class="nu">0.002</span>  <span class="cm"># variance above this = fully spurious</span>
+
+<span class="kw">def</span> <span class="fn">run_training_with_seed</span>(seed):
+    <span class="st">"""Temporarily inject seed into train.py, run, return val_bpb."""</span>
+
+    <span class="kw">with</span> <span class="fn">open</span>(<span class="st">'train.py'</span>, <span class="st">'r'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+        content = f.<span class="fn">read</span>()
+
+    <span class="cm"># Inject seed at top of file (after imports)</span>
+    seed_injection = <span class="st">f"""
+import random; random.seed({seed})
+import numpy; numpy.random.seed({seed})
+import torch; torch.manual_seed({seed})
+torch.cuda.manual_seed_all({seed})
+"""</span>
+    <span class="cm"># Write modified, run training, then ALWAYS restore</span>
+    <span class="kw">try</span>:
+        <span class="kw">with</span> <span class="fn">open</span>(<span class="st">'train.py'</span>, <span class="st">'w'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+            f.<span class="fn">write</span>(modified_content)
+        bpb = <span class="fn">run_training_get_bpb</span>()
+    <span class="kw">finally</span>:
+        <span class="kw">with</span> <span class="fn">open</span>(<span class="st">'train.py'</span>, <span class="st">'w'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+            f.<span class="fn">write</span>(content)  <span class="cm"># Always restore original</span>
+    <span class="kw">return</span> bpb</div>
+
+  <div class="code-block"><span class="kw">def</span> <span class="fn">run_replication</span>(reference_val_bpb):
+    <span class="st">"""Run 3 seeds, measure variance. Returns score 0.0-1.0"""</span>
+    results = []
+    <span class="kw">for</span> seed <span class="kw">in</span> <span class="var">SEEDS</span>:
+        bpb = <span class="fn">run_training_with_seed</span>(seed)
+        <span class="kw">if</span> bpb <span class="kw">is not None</span>:
+            results.<span class="fn">append</span>(bpb)
+
+    <span class="kw">import</span> statistics
+    variance = statistics.<span class="fn">variance</span>(results)
+
+    <span class="cm"># Low variance = high score (seed-independent)</span>
+    score = <span class="fn">max</span>(<span class="nu">0.0</span>, <span class="nu">1.0</span> - (variance / <span class="var">VARIANCE_THRESHOLD</span>))
+    <span class="kw">return</span> <span class="fn">min</span>(<span class="nu">1.0</span>, score)</div>
+</div>
+
+<!-- TRANSFER TAB -->
+<div class="code-section" id="tab-transfer">
+  <h2>causal/transfer.py &mdash; Test C (Weight: 20%)</h2>
+  <p class="code-desc">Re-runs training and compares against a stored baseline. If the improvement holds across different conditions, it generalizes and is likely causal. Uses smoothed scoring thresholds.</p>
+  <div class="code-block"><span class="kw">def</span> <span class="fn">run_transfer</span>(current_val_bpb):
+    <span class="st">"""Check if improvement holds on different evaluation."""</span>
+
+    <span class="cm"># Run training one more time</span>
+    transfer_bpb = <span class="fn">run_training_get_bpb</span>()
+
+    <span class="cm"># Load stored baseline from before any agent commits</span>
+    <span class="kw">with</span> <span class="fn">open</span>(<span class="st">'causal/transfer_baseline.txt'</span>) <span class="kw">as</span> f:
+        baseline_bpb = <span class="fn">float</span>(f.<span class="fn">read</span>().<span class="fn">strip</span>())
+
+    improvement = baseline_bpb - transfer_bpb  <span class="cm"># positive = still improving</span>
+
+    <span class="cm"># Smoothed scoring</span>
+    <span class="kw">if</span> improvement > <span class="nu">0.001</span>:    <span class="kw">return</span> <span class="nu">1.0</span>   <span class="cm"># Clear improvement</span>
+    <span class="kw">elif</span> improvement > <span class="nu">0</span>:       <span class="kw">return</span> <span class="nu">0.7</span>   <span class="cm"># Marginal</span>
+    <span class="kw">elif</span> improvement > -<span class="nu">0.001</span>: <span class="kw">return</span> <span class="nu">0.3</span>   <span class="cm"># Flat</span>
+    <span class="kw">else</span>:                      <span class="kw">return</span> <span class="nu">0.0</span>   <span class="cm"># Regression</span></div>
+</div>
+
+<!-- CLASSIFIER TAB -->
+<div class="code-section" id="tab-classifier">
+  <h2>causal/classifier.py &mdash; Score Combiner</h2>
+  <p class="code-desc">Combines the three test scores using weighted averaging and classifies the result into one of four tiers. This is the final step in the causal verification pipeline.</p>
+  <div class="code-block"><span class="var">WEIGHTS</span> = {
+    <span class="st">'ablation'</span>:    <span class="nu">0.50</span>,
+    <span class="st">'replication'</span>: <span class="nu">0.30</span>,
+    <span class="st">'transfer'</span>:    <span class="nu">0.20</span>,
+}
+
+<span class="var">THRESHOLDS</span> = {
+    <span class="st">'strongly_causal'</span>: <span class="nu">0.80</span>,
+    <span class="st">'likely_causal'</span>:   <span class="nu">0.50</span>,
+    <span class="st">'uncertain'</span>:       <span class="nu">0.20</span>,
+    <span class="cm"># below 0.20 -> spurious</span>
+}
+
+<span class="kw">def</span> <span class="fn">compute_causal_score</span>(ablation, replication, transfer):
+    <span class="st">"""Compute weighted causal confidence score."""</span>
+    score = (
+        <span class="var">WEIGHTS</span>[<span class="st">'ablation'</span>]    * ablation +
+        <span class="var">WEIGHTS</span>[<span class="st">'replication'</span>] * replication +
+        <span class="var">WEIGHTS</span>[<span class="st">'transfer'</span>]    * transfer
+    )
+    <span class="kw">return</span> <span class="fn">round</span>(<span class="fn">min</span>(<span class="nu">1.0</span>, <span class="fn">max</span>(<span class="nu">0.0</span>, score)), <span class="nu">3</span>)
+
+<span class="kw">def</span> <span class="fn">classify</span>(score):
+    <span class="st">"""Map confidence score to classification label."""</span>
+    <span class="kw">if</span> score >= <span class="var">THRESHOLDS</span>[<span class="st">'strongly_causal'</span>]:
+        <span class="kw">return</span> <span class="st">'strongly_causal'</span>
+    <span class="kw">elif</span> score >= <span class="var">THRESHOLDS</span>[<span class="st">'likely_causal'</span>]:
+        <span class="kw">return</span> <span class="st">'likely_causal'</span>
+    <span class="kw">elif</span> score >= <span class="var">THRESHOLDS</span>[<span class="st">'uncertain'</span>]:
+        <span class="kw">return</span> <span class="st">'uncertain'</span>
+    <span class="kw">else</span>:
+        <span class="kw">return</span> <span class="st">'spurious'</span></div>
+</div>
+
+</div>
 
 <script type="importmap">
 {
@@ -579,6 +908,34 @@ window.addEventListener('resize',()=>{
   camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+// ── Code Viewer Toggle ──
+const codeToggle = document.getElementById('codeToggle');
+const codeOverlay = document.getElementById('codeOverlay');
+const codeClose = document.getElementById('codeClose');
+const codeNav = document.getElementById('codeNav');
+
+codeToggle.addEventListener('click', () => {
+  codeOverlay.classList.add('show');
+  codeToggle.classList.add('active');
+  controls.enabled = false;
+});
+
+codeClose.addEventListener('click', () => {
+  codeOverlay.classList.remove('show');
+  codeToggle.classList.remove('active');
+  controls.enabled = true;
+});
+
+codeNav.addEventListener('click', (e) => {
+  const btn = e.target.closest('.code-nav-btn');
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+  codeNav.querySelectorAll('.code-nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.code-section').forEach(s => s.classList.remove('show'));
+  document.getElementById('tab-' + tab).classList.add('show');
 });
 </script>
 </body>
